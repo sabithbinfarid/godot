@@ -164,14 +164,14 @@ func _draw_game_over() -> void:
 
 	# Restart instruction
 	if _blink:
-		_draw_text("Press R to Restart  |  ESC to Quit",
+		_draw_text("Press Q/R to Restart  |  ESC to Quit",
 				   Vector2(px + 55, py + 175), Color(0.0, 0.85, 1.0))
 
 func _input(event: InputEvent) -> void:
 	if not _game_over:
 		return
 	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_R:
+		if event.keycode == KEY_R or event.keycode == KEY_Q:
 			get_tree().reload_current_scene()
 		elif event.keycode == KEY_ESCAPE:
 			get_tree().quit()

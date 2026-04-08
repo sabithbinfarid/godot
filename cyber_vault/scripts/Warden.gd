@@ -275,6 +275,9 @@ func _check_vision() -> void:
 func _can_see_ghost() -> bool:
 	if ghost == null:
 		return false
+	# Ghost is invisible in sleep rooms
+	if level and level.is_sleep_room(ghost.cell):
+		return false
 	return can_see_cell(ghost.cell)
 
 ## Checks if a cell is within the Warden's FOV cone (no ray-blocking for simplicity)
@@ -316,6 +319,9 @@ func _facing_vec() -> Vector2:
 # ─── Catch Check ──────────────────────────────────────────────────────────────
 func _check_catch() -> void:
 	if ghost == null:
+		return
+	# Ghost is safe in sleep rooms
+	if level and level.is_sleep_room(ghost.cell):
 		return
 	if float((cell - ghost.cell).length()) <= CATCH_RADIUS:
 		print("[Warden] CAUGHT the Ghost!")

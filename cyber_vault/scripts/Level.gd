@@ -11,22 +11,22 @@ const COLS := GameManager.GRID_COLS      # 20
 const ROWS := GameManager.GRID_ROWS      # 16
 
 ## ─── Level Map ───────────────────────────────────────────────────────────────
-## 0=floor  1=wall  2=terminal  3=exit  4=ghost_spawn  5=warden_spawn
+## 0=floor  1=wall  2=terminal  3=exit  4=ghost_spawn  5=warden_spawn  6=sleep_room
 const LEVEL_MAP: Array = [
 	[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 	[1,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0,1],
-	[1,0,1,1,0,1,1,0,1,0,1,1,0,1,0,1,1,0,0,1],
-	[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+	[1,6,1,1,0,1,1,0,1,0,1,1,0,1,0,1,1,6,0,1],
+	[1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
 	[1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,0,1,0,1],
-	[1,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+	[1,0,0,2,0,6,0,0,0,0,0,0,0,6,0,0,0,0,0,1],
 	[1,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1],
-	[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+	[1,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,1],
 	[1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,0,1,0,1],
 	[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
 	[1,0,1,0,0,0,1,0,0,2,1,0,0,1,0,0,1,0,0,1],
-	[1,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1],
+	[1,0,0,0,0,6,0,1,0,0,0,1,0,0,0,6,0,0,0,1],
 	[1,1,0,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,0,1],
-	[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+	[1,6,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,6,0,1],
 	[1,5,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,1],
 	[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 ]
@@ -59,6 +59,7 @@ const C_DIRT_DARK := Color(0.24, 0.12, 0.04)
 const C_STONE     := Color(0.28, 0.28, 0.32)
 const C_TERMINAL  := Color(0.0,  0.80, 0.90)
 const C_EXIT      := Color(0.2,  0.90, 0.3)
+const C_SLEEP     := Color(0.4,  0.2,  0.6)  # Purple for sleep rooms
 const C_HUD_BG    := Color(0.05, 0.05, 0.10, 0.85)
 
 ## ─── Ready ────────────────────────────────────────────────────────────────────
@@ -145,6 +146,8 @@ func _draw_tiles() -> void:
 				3:
 					_draw_floor(x, y)
 					_draw_exit(x, y)
+				6:
+					_draw_sleep_room(x, y)
 
 func _draw_floor(x: int, y: int) -> void:
 	draw_rect(Rect2(x, y, TS, TS), C_FLOOR)
@@ -181,6 +184,18 @@ func _draw_exit(x: int, y: int) -> void:
 	# "EX" label drawn in draw_string — using a simple rect cross instead
 	draw_rect(Rect2(x+10, y+17, TS-20, 5), C_EXIT)
 	draw_rect(Rect2(x+17, y+10, 5,   TS-20), C_EXIT)
+
+func _draw_sleep_room(x: int, y: int) -> void:
+	# Draw purple sleep room with glowing effect
+	draw_rect(Rect2(x, y, TS, TS), C_SLEEP)
+	# Glowing border
+	draw_rect(Rect2(x,    y,    TS, 2),  Color(0.8, 0.4, 1.0))   # top
+	draw_rect(Rect2(x,    y,    2,  TS), Color(0.8, 0.4, 1.0))   # left
+	draw_rect(Rect2(x+TS-2, y, 2, TS),  Color(0.8, 0.4, 1.0))   # right
+	draw_rect(Rect2(x, y+TS-2, TS, 2),  Color(0.8, 0.4, 1.0))   # bottom
+	# Inner pattern
+	draw_rect(Rect2(x+5, y+10, 5, TS-20), Color(0.6, 0.3, 0.8))
+	draw_rect(Rect2(x+15, y+10, 5, TS-20), Color(0.6, 0.3, 0.8))
 
 ## Subtle heatmap debug overlay (semi-transparent red)
 func _draw_heatmap_overlay() -> void:
@@ -224,6 +239,12 @@ func get_neighbors(cell: Vector2i) -> Array[Vector2i]:
 		if is_walkable(n):
 			result.append(n)
 	return result
+
+## Check if a cell is a sleep room (6)
+func is_sleep_room(cell: Vector2i) -> bool:
+	if cell.x < 0 or cell.x >= COLS or cell.y < 0 or cell.y >= ROWS:
+		return false
+	return int(LEVEL_MAP[cell.y][cell.x]) == 6
 
 ## ─── Agent Linking (called after both are spawned) ────────────────────────
 ## We use call_deferred so both _ready() calls have completed before linking
